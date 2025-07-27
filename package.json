@@ -1,0 +1,26 @@
+{
+  "name": "kelz0r",
+  "version": "1.0.0",
+  "description": "",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/snowblind-wav/kelz0r.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/snowblind-wav/kelz0r/issues"
+  },
+  "homepage": "https://github.com/snowblind-wav/kelz0r#readme",
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "discord.js": "^14.21.0",
+    "dotenv": "^17.2.1"
+  }
+}
