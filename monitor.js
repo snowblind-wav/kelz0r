@@ -7,8 +7,12 @@ const CONFIG = {
     "https://www.kelz0r.dk/magic/gundam-card-game-gd01-newtype-rising-booster-box-display-packs-p-349296.html",
     "https://www.kelz0r.dk/magic/_poke-me01-mega-evolution-base-set-m-1807.html",
   ],
+  PRICE_MONITOR_URLS: [
+    "https://www.kelz0r.dk/magic/pokemon-tin-kasse-2025-summer-scarlet-violet-black-bolt-white-flare-unova-mini-tins-displaymini-tins-boosters-p-354134.html",
+  ],
   CHECK_INTERVAL_MINUTES: 1,
   SELECTOR: "#bodyContent .popbtn.btn-success",
+  PRICE_SELECTOR: ".proinfoprice span",
   IN_STOCK_TEXT: "Add to Cart",
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -25,7 +29,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
 
-async function sendAlert(url, buttonText, inStock) {
+async function sendAlert(url, buttonText, inStock, priceData = null) {
   const timestamp = new Date().toLocaleString();
   console.log(`[${timestamp}] Status changed for ${url}. Sending alert...`);
 
@@ -37,10 +41,21 @@ async function sendAlert(url, buttonText, inStock) {
     }
 
     const embed = new EmbedBuilder()
-      .setTitle("Kelz0r Product Status Alert")
+      .setTitle("Kelz0r Product Alert")
       .setURL(url)
-      .setColor(inStock ? "#00FF00" : "#FF0000")
-      .addFields(
+      .setTimestamp();
+
+    if (priceData) {
+      embed
+        .setColor("#FFA500") // Orange for price changes
+        .addFields(
+          { name: "Alert Type", value: "Price Change", inline: true },
+          { name: "Previous Price", value: priceData.previous, inline: true },
+          { name: "Current Price", value: priceData.current, inline: true },
+          { name: "Product URL", value: url, inline: false }
+        );
+    } else {
+      embed.setColor(inStock ? "#00FF00" : "#FF0000").addFields(
         {
           name: "Status",
           value: inStock ? "In Stock" : "Out of Stock",
@@ -48,8 +63,8 @@ async function sendAlert(url, buttonText, inStock) {
         },
         { name: "Button Text", value: `\`${buttonText}\``, inline: true },
         { name: "Product URL", value: url, inline: false }
-      )
-      .setTimestamp();
+      );
+    }
 
     await channel.send({ embeds: [embed] });
     console.log("Alert sent successfully.");
@@ -61,14 +76,14 @@ async function sendAlert(url, buttonText, inStock) {
 async function monitorPage() {
   // Store previous status for each URL
   const previousStockStatuses = new Map();
+  const previousPrices = new Map();
 
   const runCheck = async () => {
     const checkTime = new Date().toLocaleString();
-    console.log(
-      `[${checkTime}] Running check for ${CONFIG.URLS.length} URLs...`
-    );
+    const totalUrls = CONFIG.URLS.length + CONFIG.PRICE_MONITOR_URLS.length;
+    console.log(`[${checkTime}] Running check for ${totalUrls} URLs...`);
 
-    // Check each URL
+    // Check stock status URLs
     for (const url of CONFIG.URLS) {
       try {
         const response = await fetch(url, {
@@ -114,6 +129,59 @@ async function monitorPage() {
       } catch (error) {
         console.error(
           `[${checkTime}] An error occurred while monitoring ${url}:`,
+          error.message
+        );
+      }
+    }
+
+    // Check price monitor URLs
+    for (const url of CONFIG.PRICE_MONITOR_URLS) {
+      try {
+        const response = await fetch(url, {
+          headers: { "User-Agent": CONFIG.USER_AGENT },
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch page: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        const priceElement = $(CONFIG.PRICE_SELECTOR);
+        const currentPrice = priceElement.text().trim();
+
+        if (!currentPrice) {
+          console.warn(
+            `[${checkTime}] Warning: Could not find price for ${url} with selector "${CONFIG.PRICE_SELECTOR}".`
+          );
+          continue;
+        }
+
+        const previousPrice = previousPrices.get(url);
+
+        if (previousPrice === undefined) {
+          console.log(`Initial price detected for ${url}: ${currentPrice}`);
+          previousPrices.set(url, currentPrice);
+          continue;
+        }
+
+        if (previousPrice !== currentPrice) {
+          await sendAlert(url, null, null, {
+            previous: previousPrice,
+            current: currentPrice,
+          });
+          previousPrices.set(url, currentPrice);
+        } else {
+          console.log(
+            `No price change detected for ${url}. Price: ${currentPrice}`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[${checkTime}] An error occurred while monitoring price for ${url}:`,
           error.message
         );
       }
