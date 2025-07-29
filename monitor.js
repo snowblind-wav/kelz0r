@@ -3,7 +3,11 @@ const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 require("dotenv").config();
 
 const CONFIG = {
-  URL: "https://www.kelz0r.dk/magic/gundam-card-game-gd01-newtype-rising-booster-box-display-packs-p-349296.html",
+  URLS: [
+    "https://www.kelz0r.dk/magic/gundam-card-game-gd01-newtype-rising-booster-box-display-packs-p-349296.html",
+    // Add your additional URLs here
+    "https://www.kelz0r.dk/magic/another-product-url.html",
+  ],
   CHECK_INTERVAL_MINUTES: 1,
   SELECTOR: "#bodyContent .popbtn.btn-success",
   IN_STOCK_TEXT: "Add to Cart",
@@ -24,7 +28,7 @@ const client = new Client({
 
 async function sendAlert(url, buttonText, inStock) {
   const timestamp = new Date().toLocaleString();
-  console.log(`[${timestamp}] Status changed. Sending alert...`);
+  console.log(`[${timestamp}] Status changed for ${url}. Sending alert...`);
 
   try {
     const channel = await client.channels.fetch(process.env.DISCORD_CHANNEL_ID);
@@ -43,7 +47,8 @@ async function sendAlert(url, buttonText, inStock) {
           value: inStock ? "In Stock" : "Out of Stock",
           inline: true,
         },
-        { name: "Button Text", value: `\`${buttonText}\``, inline: true }
+        { name: "Button Text", value: `\`${buttonText}\``, inline: true },
+        { name: "Product URL", value: url, inline: false }
       )
       .setTimestamp();
 
@@ -55,56 +60,64 @@ async function sendAlert(url, buttonText, inStock) {
 }
 
 async function monitorPage() {
-  let previousStockStatus;
+  // Store previous status for each URL
+  const previousStockStatuses = new Map();
 
   const runCheck = async () => {
     const checkTime = new Date().toLocaleString();
-    console.log(`[${checkTime}] Running check...`);
+    console.log(
+      `[${checkTime}] Running check for ${CONFIG.URLS.length} URLs...`
+    );
 
-    try {
-      const response = await fetch(CONFIG.URL, {
-        headers: { "User-Agent": CONFIG.USER_AGENT },
-      });
+    // Check each URL
+    for (const url of CONFIG.URLS) {
+      try {
+        const response = await fetch(url, {
+          headers: { "User-Agent": CONFIG.USER_AGENT },
+        });
 
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch page: ${response.status} ${response.statusText}`
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch page: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        const buttonElement = $(CONFIG.SELECTOR);
+        const buttonText = buttonElement.find("span").last().text().trim();
+
+        if (!buttonText) {
+          console.warn(
+            `[${checkTime}] Warning: Could not find button text for ${url} with selector "${CONFIG.SELECTOR}".`
+          );
+          continue;
+        }
+
+        const currentStockStatus =
+          buttonText.toLowerCase() === CONFIG.IN_STOCK_TEXT.toLowerCase();
+
+        const previousStockStatus = previousStockStatuses.get(url);
+
+        if (previousStockStatus === undefined) {
+          console.log(`Initial status detected for ${url}: "${buttonText}"`);
+          previousStockStatuses.set(url, currentStockStatus);
+          continue;
+        }
+
+        if (previousStockStatus !== currentStockStatus) {
+          await sendAlert(url, buttonText, currentStockStatus);
+          previousStockStatuses.set(url, currentStockStatus);
+        } else {
+          console.log(`No change detected for ${url}. Status: "${buttonText}"`);
+        }
+      } catch (error) {
+        console.error(
+          `[${checkTime}] An error occurred while monitoring ${url}:`,
+          error.message
         );
       }
-
-      const html = await response.text();
-      const $ = cheerio.load(html);
-
-      const buttonElement = $(CONFIG.SELECTOR);
-      const buttonText = buttonElement.find("span").last().text().trim();
-
-      if (!buttonText) {
-        console.warn(
-          `[${checkTime}] Warning: Could not find button text with selector "${CONFIG.SELECTOR}".`
-        );
-        return;
-      }
-
-      const currentStockStatus =
-        buttonText.toLowerCase() === CONFIG.IN_STOCK_TEXT.toLowerCase();
-
-      if (previousStockStatus === undefined) {
-        console.log(`Initial status detected: "${buttonText}"`);
-        previousStockStatus = currentStockStatus;
-        return;
-      }
-
-      if (previousStockStatus !== currentStockStatus) {
-        await sendAlert(CONFIG.URL, buttonText, currentStockStatus);
-        previousStockStatus = currentStockStatus;
-      } else {
-        console.log(`No change detected. Status: "${buttonText}"`);
-      }
-    } catch (error) {
-      console.error(
-        `[${checkTime}] An error occurred while monitoring:`,
-        error.message
-      );
     }
   };
 
