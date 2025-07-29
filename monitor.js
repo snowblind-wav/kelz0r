@@ -5,8 +5,7 @@ require("dotenv").config();
 const CONFIG = {
   URLS: [
     "https://www.kelz0r.dk/magic/gundam-card-game-gd01-newtype-rising-booster-box-display-packs-p-349296.html",
-    // Add your additional URLs here
-    "https://www.kelz0r.dk/magic/another-product-url.html",
+    "https://www.kelz0r.dk/magic/_poke-me01-mega-evolution-base-set-m-1807.html",
   ],
   CHECK_INTERVAL_MINUTES: 1,
   SELECTOR: "#bodyContent .popbtn.btn-success",
