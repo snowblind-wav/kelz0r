@@ -8,11 +8,11 @@ const CONFIG = {
     "https://www.kelz0r.dk/magic/_poke-me01-mega-evolution-base-set-m-1807.html",
   ],
   PRICE_MONITOR_URLS: [
-    "https://www.kelz0r.dk/magic/pokemon-tin-kasse-2025-summer-scarlet-violet-black-bolt-white-flare-unova-mini-tins-displaymini-tins-boosters-p-354134.html",
+    "https://www.kelz0r.dk/magic/pokemon-tin-kasse-2025-summer-scarlet-violet-black-bolt-white-flare-unova-mini-tins-displaymini-tins-boosters-p-354134.html?currency=USD",
   ],
   CHECK_INTERVAL_MINUTES: 1,
   SELECTOR: "#bodyContent .popbtn.btn-success",
-  PRICE_SELECTOR: ".proinfoprice span",
+  PRICE_SELECTOR: ".proinfoprice span:first-child",
   IN_STOCK_TEXT: "Add to Cart",
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -21,7 +21,16 @@ const CONFIG = {
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9",
-    Cookie: "currency=USD",
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    DNT: "1",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    Cookie: "currency=USD; language=en; country=US",
   },
 };
 
