@@ -94,7 +94,7 @@ async function monitorPage() {
     for (const url of CONFIG.URLS) {
       try {
         const response = await fetch(url, {
-          headers: { "User-Agent": CONFIG.USER_AGENT },
+          headers: CONFIG.HEADERS,
         });
 
         if (!response.ok) {
@@ -145,7 +145,7 @@ async function monitorPage() {
     for (const url of CONFIG.PRICE_MONITOR_URLS) {
       try {
         const response = await fetch(url, {
-          headers: { "User-Agent": CONFIG.USER_AGENT },
+          headers: CONFIG.HEADERS,
         });
 
         if (!response.ok) {
